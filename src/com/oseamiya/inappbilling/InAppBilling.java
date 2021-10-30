@@ -88,12 +88,27 @@ public class InAppBilling extends AndroidNonvisibleComponent{
                 if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && list != null){
                   for(Purchase purchase : list){
                     // since we have only passes a productId at LaunchPurchaseFlow
-                    GotPurchase(purchase);
+                    activity.runOnUiThread(new Runnable() {
+                      @Override
+                      public void run() {
+                        GotPurchase(purchase);
+                      }
+                    });
                   }
                 }else if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED){
-                  PurchaseCancelled();
+                  activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                      PurchaseCancelled();
+                    }
+                  });
                 }else{
-                  PurchaseFailed(billingResult.getResponseCode());
+                  activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                      PurchaseFailed(billingResult.getResponseCode());
+                    }
+                  });
                 }
               }
             })
@@ -105,13 +120,22 @@ public class InAppBilling extends AndroidNonvisibleComponent{
     billingClient.startConnection(new BillingClientStateListener() {
       @Override
       public void onBillingServiceDisconnected() {
-        BillingServiceDisconnect();
+        activity.runOnUiThread(new Runnable() {
+          @Override
+          public void run() {
+            BillingServiceDisconnect();
+          }
+        });
       }
-
       @Override
       public void onBillingSetupFinished(@NonNull @NotNull BillingResult billingResult) {
-        if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK){
-          BillingClientReady();
+        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+          activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+              BillingClientReady();
+            }
+          });
         }
       }
     });
@@ -160,9 +184,19 @@ public class InAppBilling extends AndroidNonvisibleComponent{
             @Override
             public void onConsumeResponse(@NonNull @NotNull BillingResult billingResult, @NonNull @NotNull String s) {
               if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK){
-                PurchaseSuccess();
+                activity.runOnUiThread(new Runnable() {
+                  @Override
+                  public void run() {
+                    PurchaseSuccess();
+                  }
+                });
               }else{
-                PurchaseFailed(billingResult.getResponseCode());
+                activity.runOnUiThread(new Runnable() {
+                  @Override
+                  public void run() {
+                    PurchaseFailed(billingResult.getResponseCode());
+                  }
+                });
               }
             }
           };
@@ -190,9 +224,19 @@ public class InAppBilling extends AndroidNonvisibleComponent{
             @Override
             public void onAcknowledgePurchaseResponse(@NonNull @NotNull BillingResult billingResult) {
               if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK){
-                PurchaseSuccess();
+                activity.runOnUiThread(new Runnable() {
+                  @Override
+                  public void run() {
+                    PurchaseSuccess();
+                  }
+                });
               }else{
-                PurchaseFailed(billingResult.getResponseCode());
+                activity.runOnUiThread(new Runnable() {
+                  @Override
+                  public void run() {
+                    PurchaseFailed(billingResult.getResponseCode());
+                  }
+                });
               }
             }
           };
@@ -231,7 +275,12 @@ public class InAppBilling extends AndroidNonvisibleComponent{
         public void onSkuDetailsResponse(@NonNull @NotNull BillingResult billingResult, @Nullable @org.jetbrains.annotations.Nullable List<SkuDetails> list) {
           if(billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && list!= null){
             SkuDetails skuDetails = list.get(0);
-            GotDetails(skuDetails.getTitle()==null?"":skuDetails.getTitle() , skuDetails.getDescription()==null?"":skuDetails.getDescription(), skuDetails.getPrice()==null?"" : skuDetails.getPrice(), skuDetails.getOriginalJson()==null?"": skuDetails.getOriginalJson());
+            activity.runOnUiThread(new Runnable() {
+              @Override
+              public void run() {
+                GotDetails(skuDetails.getTitle()==null?"":skuDetails.getTitle() , skuDetails.getDescription()==null?"":skuDetails.getDescription(), skuDetails.getPrice()==null?"" : skuDetails.getPrice(), skuDetails.getOriginalJson()==null?"": skuDetails.getOriginalJson());
+              }
+            });
           }
         }
       });
@@ -255,7 +304,12 @@ public class InAppBilling extends AndroidNonvisibleComponent{
       public void onPurchaseHistoryResponse(@NonNull @NotNull BillingResult billingResult, @Nullable @org.jetbrains.annotations.Nullable List<PurchaseHistoryRecord> list) {
         if (list != null) {
           for (PurchaseHistoryRecord purchaseHistoryRecord : list) {
-            detailsInJson.add(purchaseHistoryRecord.getOriginalJson());
+			  activity.runOnUiThread(new Runnable (){
+				  @Override
+				  public void run() {
+					detailsInJson.add(purchaseHistoryRecord.getOriginalJson());
+				  }
+			  });
           }
         }
       }
