@@ -5,12 +5,15 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.android.billingclient.api.*;
+import com.google.appinventor.components.annotations.DesignerProperty;
 import com.google.appinventor.components.annotations.SimpleEvent;
 import com.google.appinventor.components.annotations.SimpleFunction;
 import com.google.appinventor.components.annotations.SimpleProperty;
+import com.google.appinventor.components.common.PropertyTypeConstants;
 import com.google.appinventor.components.runtime.AndroidNonvisibleComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
+import com.google.appinventor.components.runtime.OnDestroyListener;
 import com.google.appinventor.components.runtime.util.YailList;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,11 +24,39 @@ public class InAppBilling extends AndroidNonvisibleComponent{
   private final Context context;
   private final Activity activity;
   private BillingClient billingClient;
+  private final String TEST_PURCHASED_ID = "android.test.purchased";
+  private boolean isTest = false;
+  private boolean isSubscription = false;
+  private boolean isAutoAcknowledge = false;
   public InAppBilling(ComponentContainer container) {
     super(container.$form());
     context = container.$context();
     activity = (Activity) container.$context();
+    form.registerForOnDestroy(new OnDestroyListener() {
+        @Override
+        public void onDestroy() {
+            billingClient.endConnection();
+        }
+    });
     Initialize();
+  }
+  @DesignerProperty(defaultValue = "False", editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN)
+  @SimpleProperty(description = "If enabled, Test product id is used in each case")
+  public void Test(boolean test){
+      isTest = test;
+  }
+  @SimpleProperty(description = "Return if Test is enabled or not")
+  public boolean Test(){
+      return isTest;
+  }
+  @DesignerProperty(defaultValue = "False", editorType = PropertyTypeConstants.PROPERTY_TYPE_BOOLEAN)
+  @SimpleProperty(description = "If enabled then it will automatically handle every purchase as non-consumable")
+  public void AutoAcknowledge(boolean autoAcknowledge){
+      isAutoAcknowledge = autoAcknowledge;
+  }
+  @SimpleProperty(description = "Return if AutoAcknowledge is enabled or not")
+  public boolean AutoAcknowledge(){
+      return isAutoAcknowledge;
   }
   @SimpleEvent
   public void BillingServiceDisconnect(){
@@ -72,8 +103,12 @@ public class InAppBilling extends AndroidNonvisibleComponent{
     EventDispatcher.dispatchEvent(this, "GotDetails", title, description, price, json);
   }
   @SimpleEvent
-  public void GotPurchasesHistory(YailList jsons){
-    EventDispatcher.dispatchEvent(this ,"GotPurchasesHistory", jsons);
+  public void FailedToGetPurchasesHistory(String error){
+    EventDispatcher.dispatchEvent(this, "FailedToGetPurchasesHistory", error);
+  }
+  @SimpleEvent
+  public void GotPurchasesHistory(YailList productIds, YailList orderIds, YailList jsons){
+    EventDispatcher.dispatchEvent(this ,"GotPurchasesHistory", productIds, orderIds, jsons);
   }
   @SimpleEvent
   public void OnError(String error){
@@ -92,6 +127,9 @@ public class InAppBilling extends AndroidNonvisibleComponent{
                       @Override
                       public void run() {
                         GotPurchase(purchase);
+                        if(isAutoAcknowledge && !isSubscription){
+                            HandleNonConsumable(purchase);
+                        }
                       }
                     });
                   }
@@ -141,13 +179,15 @@ public class InAppBilling extends AndroidNonvisibleComponent{
     });
   }
   @SimpleFunction
-  public void LaunchPurchaseFlow(String productId){
+  public void LaunchPurchaseFlow(String productId, String skuType){
+    String idOfProduct = isTest ? TEST_PURCHASED_ID : productId;
+    isSubscription = skuType.equals(BillingClient.SkuType.SUBS);
     if(billingClient.isReady()){
       List<String> skuList = new ArrayList<>();
-      skuList.add(productId);
+      skuList.add(idOfProduct);
       SkuDetailsParams skuDetailsParams = SkuDetailsParams.newBuilder()
               .setSkusList(skuList)
-              .setType(BillingClient.SkuType.INAPP)
+              .setType(skuType)
               .build();
       billingClient.querySkuDetailsAsync(skuDetailsParams, new SkuDetailsResponseListener() {
         @Override
@@ -167,7 +207,7 @@ public class InAppBilling extends AndroidNonvisibleComponent{
       OnError("Billing Client is not ready");
     }
   }
-  @SimpleFunction
+  @SimpleFunction(description = "The product user consumed again can be purchased")
   public void HandleConsumable(Object purchase){
     if(purchase instanceof Purchase){
       Purchase purchase1 = (Purchase) purchase;
@@ -176,7 +216,7 @@ public class InAppBilling extends AndroidNonvisibleComponent{
       }else if(purchase1.getPurchaseState() == Purchase.PurchaseState.UNSPECIFIED_STATE){
         PurchaseStateUnspecified();
       }else{
-        if(!purchase1.isAcknowledged()){ // TO know if payment is acknowledged, if not it means the payment is not successful yet.
+        if(!purchase1.isAcknowledged()){ // TO know if payment is acknowledged, if not it means the payment is not successful/acknowledged yet.
           ConsumeParams consumeParams = ConsumeParams.newBuilder()
                   .setPurchaseToken(purchase1.getPurchaseToken())
                   .build();
@@ -207,7 +247,7 @@ public class InAppBilling extends AndroidNonvisibleComponent{
       OnError("purchase is not an instance of Purchase");
     }
   }
-  @SimpleFunction
+  @SimpleFunction(description = "The product can be purchased only once")
   public void HandleNonConsumable(Object purchase){
     if(purchase instanceof Purchase){
       Purchase purchase1 = (Purchase) purchase;
@@ -263,9 +303,10 @@ public class InAppBilling extends AndroidNonvisibleComponent{
   }
   @SimpleFunction
   public void GetDetails(String productId, String skuType){
+    String idOfProduct = isTest ? TEST_PURCHASED_ID : productId;
     if(billingClient.isReady()){
       List<String> skuList = new ArrayList<>();
-      skuList.add(productId);
+      skuList.add(idOfProduct);
       SkuDetailsParams skuDetailsParams = SkuDetailsParams.newBuilder()
               .setSkusList(skuList)
               .setType(skuType)
@@ -296,26 +337,28 @@ public class InAppBilling extends AndroidNonvisibleComponent{
     }
     return false;
   }
+
   @SimpleFunction
   public void GetPurchasesHistory(String skuType){
-    List<String> detailsInJson = new ArrayList<>();
-    billingClient.queryPurchaseHistoryAsync(skuType, new PurchaseHistoryResponseListener() {
-      @Override
-      public void onPurchaseHistoryResponse(@NonNull @NotNull BillingResult billingResult, @Nullable @org.jetbrains.annotations.Nullable List<PurchaseHistoryRecord> list) {
-        if (list != null) {
-          for (PurchaseHistoryRecord purchaseHistoryRecord : list) {
-			  activity.runOnUiThread(new Runnable (){
-				  @Override
-				  public void run() {
-					detailsInJson.add(purchaseHistoryRecord.getOriginalJson());
-				  }
-			  });
+      Purchase.PurchasesResult purchasesResult = billingClient.queryPurchases(skuType);
+      List<Purchase> purchases = purchasesResult.getPurchasesList();
+      List<String> listOfJsons = new ArrayList<>();
+      List<String> listOfSkus = new ArrayList<>();
+      List<String> orderIds = new ArrayList<>();
+      if(purchasesResult.getBillingResult().getResponseCode() == BillingClient.BillingResponseCode.OK){
+          if(purchases != null){
+              for(Purchase purchase : purchases){
+                  listOfJsons.add(purchase.getOriginalJson());
+                  listOfSkus.add(purchase.getSkus().get(0));
+                  orderIds.add(purchase.getOrderId());
+              }
+            GotPurchasesHistory(YailList.makeList(listOfSkus), YailList.makeList(orderIds), YailList.makeList(listOfJsons));
+          }else{
+            FailedToGetPurchasesHistory("Failed as purchases is null ");
           }
-        }
+      }else{
+        FailedToGetPurchasesHistory("Failed, ResponseCode = " + purchasesResult.getBillingResult().getResponseCode());
       }
-    });
-    GotPurchasesHistory(YailList.makeList(detailsInJson));
-
   }
   @SimpleProperty
   public boolean IsSubscriptionSupported(){
@@ -328,7 +371,7 @@ public class InAppBilling extends AndroidNonvisibleComponent{
   }
   @SimpleFunction
   public void EndConnection(){
-    billingClient.endConnection();
+    billingClient.endConnection(); // No need of it , connection will automatically end, see constructor -- >>
   }
   @SimpleProperty
   public String InApp(){
