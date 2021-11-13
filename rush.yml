@@ -3,11 +3,11 @@
 
 ---
 name: InAppBilling
-description: Extension component for InAppBilling. Created using Rush.
-
+description: This extension will help you to add InAppBilling to your app. <br> <a href="https://github.com/oseamiya/InAppBilling"> Source Code </a> <br> <a href="https://community.kodular.io/t/free-inappbilling-sell-your-digital-product-from-your-android-application/151402?u=oseamiya"> Documentation </a>
+homepage: 'https://community.kodular.io/t/free-inappbilling-sell-your-digital-product-from-your-android-application/151402?u=oseamiya'
 version:
   number: auto
-  name: '1'
+  name: '2'
 
 authors:
   - oseamiya
@@ -27,6 +27,7 @@ assets:
   icon: icon.png
 deps:
   - appbilling.jar
+  - org.json.jar
   # Extension assets.
   # other:
   #   - my_awesome_asset.anything
