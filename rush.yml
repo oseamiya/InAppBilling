@@ -27,11 +27,3 @@ assets:
   icon: icon.png
 deps:
   - appbilling.jar
-  - org.json.jar
-  # Extension assets.
-  # other:
-  #   - my_awesome_asset.anything
-
-# Extension dependencies (JAR).
-# deps:
-#   - my_awesome_library.jar
