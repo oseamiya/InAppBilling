@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.oseamiya.inappbilling">
   <uses-sdk
-    android:minSdkVersion="14"
-    android:targetSdkVersion="22" />
+          android:minSdkVersion="14"
+          android:targetSdkVersion="22" />
   <uses-permission android:name="com.android.vending.BILLING" />
   <application>
-    <meta-data
-      android:name="com.google.android.play.billingclient.version"
-      android:value="4.0.0" />
+    <meta-data android:name="com.google.android.play.billingclient.version" android:value="5.0.0"/>
     <activity android:name="com.android.billingclient.api.ProxyBillingActivity"
               android:exported="false" />
   </application>
