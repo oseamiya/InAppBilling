@@ -5,9 +5,11 @@
 name: InAppBilling
 description: This extension will help you to add InAppBilling to your app. <br> <a href="https://github.com/oseamiya/InAppBilling"> Source Code </a> <br> <a href="https://community.kodular.io/t/free-inappbilling-sell-your-digital-product-from-your-android-application/151402?u=oseamiya"> Documentation </a>
 homepage: 'https://community.kodular.io/t/free-inappbilling-sell-your-digital-product-from-your-android-application/151402?u=oseamiya'
+license: "\assets\third_party_licenses.txt"
+
 version:
   number: auto
-  name: '2'
+  name: '3'
 
 authors:
   - oseamiya
@@ -26,4 +28,5 @@ assets:
   # Extension icon. This can be a URL or a local image in 'assets' folder.
   icon: icon.png
 deps:
-  - appbilling.jar
+  - billing-5.0.0.jar
+  - guava-24.1-android.jar
